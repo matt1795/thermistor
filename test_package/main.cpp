@@ -1,0 +1,18 @@
+#include "thermistor/ntc.hpp"
+
+#include <iostream>
+
+constexpr auto ntc_lookup = Thermistor::Ntc<
+	25,		// nominal temp Celcius
+	10000,  // nominal resistance
+	25, 	// beta temp first
+	50,		// beta temp second 
+	3950,	// beta value 
+	-50,	// min temp Celcius 
+	150, 	// max temp Celcius
+	201 	// number of datapoints
+>{};
+
+int main() {
+	std::cout << ntc_lookup.lookup(10000) << std::endl;
+}
