@@ -9,7 +9,7 @@ class ThermistorConan(ConanFile):
     description = "<Description of Thermistor here>"
     topics = ("thermistor", "embedded", "")
     exports_sources = "include/*"
-    requires = "gcem/1.12.0@matt1795/testing"
+    requires = "gcem/1.12.0@matt1795/stable"
 
     def package(self):
         self.copy("*", ".")
