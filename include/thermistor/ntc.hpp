@@ -31,36 +31,38 @@ namespace Thermistor {
             return static_cast<double>(kelvin) - 273.15;
         }
 
-        // calculations for this thermistor
-        static constexpr Output calculate(Input const& res) {
-            return k_to_c(1.0 / ((1.0 / c_to_k(nominal_temp)) -
-                                 (gcem::log(nominal_res / res) / beta)));
-        }
-
-        static constexpr Input reverse_calc(Output const& temp) {
+        // calculate resistance for given temperature
+        static constexpr Input calculate(Output const& temp) {
             return static_cast<double>(nominal_res) *
                    gcem::exp(
                        -1.0 * beta *
                        ((1.0 / c_to_k(nominal_temp)) - (1.0 / c_to_k(temp))));
         }
 
-        static auto constexpr var = -1.0 * beta;
-        static auto constexpr max_temp_res = reverse_calc(max_temp);
-        static auto constexpr min_temp_res = reverse_calc(min_temp);
         static auto constexpr delta =
-            gcem::abs(static_cast<double>(max_temp_res) - min_temp_res) /
-            datapoints;
+            static_cast<double>(max_temp - min_temp + 1) / datapoints;
 
         constexpr Ntc() {
             if constexpr (nominal_temp == beta_first) {
                 for (auto i = 0; i < datapoints; i++)
-                    table[i] = calculate((i * delta) + max_temp_res);
+                    table[i] = calculate((i * delta) + min_temp);
             }
         }
 
         // returns temperature and whether the value is saturated
         constexpr Output lookup(Input const& input) const { return 0.0; }
 
-        constexpr auto interpolate() const { return 0.0; }
+        constexpr auto interpolate(Input const& input) const {
+            auto it = std::lower_bound(std::begin(table), std::end(table), input);
+
+            // saturate the value if out of bounds
+            if (it == std::begin(table)) {
+                return *std::begin(table);
+            } else if (it == std::end(table)) {
+                return *std::prev(std::end(table));
+            } else {
+                // interpolate
+            }
+        }
     };
 } // namespace Thermistor
