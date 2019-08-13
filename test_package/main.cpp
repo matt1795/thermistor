@@ -1,6 +1,8 @@
 #include "thermistor/ntc.hpp"
+#include "thermistor/circuits.hpp"
 
 #include <iostream>
+#include <ratio>
 
 constexpr auto ntc_lookup = Thermistor::Ntc<25,    // nominal temp Celcius
                                             10000, // nominal resistance
@@ -10,13 +12,21 @@ constexpr auto ntc_lookup = Thermistor::Ntc<25,    // nominal temp Celcius
                                             -50,   // min temp Celcius
                                             150,   // max temp Celcius
                                             201    // number of datapoints
-                                            >{};
+                                            >{
+											Thermistor::Circuits::VoltageDividerBottom<5, std::ratio<1, 1>, 10000, 12, 5, std::ratio<1, 1>>::transform()
+											};
 
 int main() {
-    std::cout << "delta: " << ntc_lookup.delta << std::endl;
-    std::cout << ntc_lookup.lookup(10000) << std::endl;
+	std::uint32_t res_values[] = { 9783, 1000000, 150 };
 
-    int i = 0;
-    for (auto& datapoint : ntc_lookup.table)
-        std::cout << ((i++ * ntc_lookup.delta) + -50) << ": " <<datapoint << std::endl;
+	double i = -50.0;
+	for (auto& res : ntc_lookup.table) {
+		std::cout << i << ", " << res << std::endl;
+		i += 1.0;
+	}
+
+	for (auto& resistance : res_values) {
+		auto [temp, saturated] = ntc_lookup.interpolate(resistance);
+		std::cout << "temp: " << temp << ", saturated: " << saturated << std::endl;
+	}
 }
