@@ -11,22 +11,26 @@ constexpr auto ntc_lookup = Thermistor::Ntc<25,    // nominal temp Celcius
                                             3950,  // beta value
                                             -50,   // min temp Celcius
                                             150,   // max temp Celcius
-                                            201    // number of datapoints
+                                            251    // number of datapoints
                                             >{
 											Thermistor::Circuits::VoltageDividerBottom<5, std::ratio<1, 1>, 10000, 12, 5, std::ratio<1, 1>>::transform()
 											};
 
 int main() {
-	std::uint32_t res_values[] = { 9783, 1000000, 150 };
+	std::uint32_t adc_values[] = { 2000, 1000000, 40 };
 
 	double i = -50.0;
-	for (auto& res : ntc_lookup.table) {
-		std::cout << i << ", " << res << std::endl;
-		i += 1.0;
+	std::cout << "ADC values for each temperature:" << std::endl;
+	for (auto& adc_value : ntc_lookup.table) {
+		std::cout << i << ", " << adc_value << std::endl;
+		i += ntc_lookup.delta;
 	}
 
-	for (auto& resistance : res_values) {
-		auto [temp, saturated] = ntc_lookup.interpolate(resistance);
-		std::cout << "temp: " << temp << ", saturated: " << saturated << std::endl;
+	std::cout << std::endl << "saturation output:" << std::endl;
+	for (auto& adc_value : adc_values) {
+		auto [temp, saturated] = ntc_lookup.interpolate(adc_value);
+		std::cout << "value: " << adc_value << ", temp: " << temp << ", saturated: " << saturated << std::endl;
 	}
+
+	std::cout << std::endl << "delta: " << ntc_lookup.delta << std::endl;
 }

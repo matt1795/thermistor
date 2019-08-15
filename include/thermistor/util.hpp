@@ -21,11 +21,21 @@ namespace Thermistor {
 		return true;
 	}
 
+	template <typename Iterator, typename Predicate>
+	constexpr bool any_of(Iterator first, Iterator last, Predicate p) {
+		first++;
+		for (;first != last; ++first)
+			if (p(*first, *std::prev(first)))
+				return true;
+
+		return false;
+	}
+	
 	// checks if range is in ascending order
 	template <typename Iterator>
 	constexpr bool ascending(Iterator first, Iterator last) {
 		return all_of(first, last, [](auto& current, auto& previous) {
-			return current >= previous;
+			return current > previous;
 		});
 	}
 	
@@ -33,7 +43,15 @@ namespace Thermistor {
 	template <typename Iterator>
 	constexpr bool descending(Iterator first, Iterator last) {
 		return all_of(first, last, [](auto& current, auto& previous) {
-			return current <= previous;
+			return current < previous;
+		});
+	}
+
+	// checks to see if any values are equal
+	template <typename Iterator>
+	constexpr bool over_sampled(Iterator first, Iterator last) {
+		return any_of(first, last, [](auto& current, auto& previous) {
+			return current == previous;
 		});
 	}
 }

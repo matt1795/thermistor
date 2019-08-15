@@ -14,8 +14,6 @@
 #include <array>
 #include <tuple>
 
-#include <iostream>
-
 namespace Thermistor {
     // beta model
     template <auto nominal_temp, auto nominal_res, auto beta_first,
@@ -44,8 +42,8 @@ namespace Thermistor {
         }
 
 		template <typename IndexType>
-		static constexpr Output index_to_temp(IndexType i) {
-			return static_cast<Output>(i) * delta + min_temp;
+		static constexpr double index_to_temp(IndexType i) {
+			return static_cast<double>(i) * delta + min_temp;
 		}
 	
 		template <typename Iterator>
@@ -54,17 +52,24 @@ namespace Thermistor {
 		}
 
         static auto constexpr delta =
-            static_cast<double>(max_temp - min_temp + 1) / datapoints;
+            static_cast<double>(max_temp - min_temp) / (datapoints - 1);
 
 		template <typename Func>
 		constexpr Ntc(Func f) {
+			static_assert(datapoints > 1, "datapoints must be greater than 1");
+
             if constexpr (nominal_temp == beta_first) {
                 for (auto i = 0; i < datapoints; i++)
                     table[i] = f(calculate(index_to_temp(i)));
             }
 
-			if (!descending(std::begin(table), std::end(table)))
+			if (!descending(std::begin(table), std::end(table))) {
+				if (over_sampled(std::begin(table), std::end(table)))
+					throw std::logic_error("the thermistor transfer function "
+						"is over sampled and not able to distinguish between "
+						"some temperatures (decrease number of datapoints)");
 				throw std::logic_error("table values must be in descending order");
+			}
         }
 
 		constexpr Ntc() 
