@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "util.hpp"
+
 #include "gcem.hpp"
 
 #include <algorithm>
@@ -39,28 +41,59 @@ namespace Thermistor {
                        ((1.0 / c_to_k(nominal_temp)) - (1.0 / c_to_k(temp))));
         }
 
+		template <typename IndexType>
+		static constexpr double index_to_temp(IndexType i) {
+			return static_cast<double>(i) * delta + min_temp;
+		}
 
-        constexpr Ntc() {
+		template <typename Iterator>
+		Output iterator_to_temp(Iterator const& it) const {
+			return index_to_temp(std::distance(it, std::rend(table) - 1));
+		}
+
+        static auto constexpr delta =
+            static_cast<double>(max_temp - min_temp) / (datapoints - 1);
+
+		template <typename Func>
+		constexpr Ntc(Func f) {
+			static_assert(datapoints > 1, "datapoints must be greater than 1");
+
             if constexpr (nominal_temp == beta_first) {
                 for (auto i = 0; i < datapoints; i++)
-                    table[i] = calculate((i * delta) + min_temp);
+                    table[i] = f(calculate(index_to_temp(i)));
             }
+
+			if (!descending(std::begin(table), std::end(table))) {
+				if (over_sampled(std::begin(table), std::end(table)))
+					throw std::logic_error("the thermistor transfer function "
+						"is over sampled and not able to distinguish between "
+						"some temperatures (decrease number of datapoints)");
+				throw std::logic_error("table values must be in descending order");
+			}
         }
 
-        // returns temperature and whether the value is saturated
-        constexpr Output lookup(Input const& input) const { return 0.0; }
+		constexpr Ntc()
+			: Ntc([](auto val) { return val; })
+		{}
 
-        constexpr auto interpolate(Input const& input) const {
-            auto it = std::lower_bound(std::begin(table), std::end(table), input);
+		// outputs interpolated temperature and whether it is a saturated value
+        constexpr std::pair<Output, bool> interpolate(Input const& input) const {
+			auto it = std::lower_bound(std::rbegin(table), std::rend(table), input);
 
-            // saturate the value if out of bounds
-            if (it == std::begin(table)) {
-                return *std::begin(table);
-            } else if (it == std::end(table)) {
-                return *std::prev(std::end(table));
-            } else {
-                // interpolate
-            }
+			// saturate the value if out of bounds
+			if (it == std::rbegin(table)) {
+				return std::make_pair(iterator_to_temp(std::rbegin(table)), true);
+			} else if (it == std::rend(table)) {
+				return std::make_pair(iterator_to_temp(std::prev(std::rend(table))), true );
+			} else {
+				// interpolate
+				auto x1 = iterator_to_temp(it);
+				auto y1 = *it;
+				auto x2 = iterator_to_temp(std::prev(it));
+				auto y2 = *std::prev(it);
+
+				return std::make_pair((((input - y1) * (x2 - x1))/(y2 - y1)) + x1, false );
+			}
         }
     };
 } // namespace Thermistor
