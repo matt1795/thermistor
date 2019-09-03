@@ -39,8 +39,6 @@ namespace Thermistor {
                        ((1.0 / c_to_k(nominal_temp)) - (1.0 / c_to_k(temp))));
         }
 
-        static auto constexpr delta =
-            static_cast<double>(max_temp - min_temp + 1) / datapoints;
 
         constexpr Ntc() {
             if constexpr (nominal_temp == beta_first) {

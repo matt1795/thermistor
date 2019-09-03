@@ -12,6 +12,8 @@ constexpr auto ntc_lookup = Thermistor::Ntc<25,    // nominal temp Celcius
                                             201    // number of datapoints
                                             >{};
 
+constexpr auto example = Thermistor::make_lut<
+    
 int main() {
     std::cout << "delta: " << ntc_lookup.delta << std::endl;
     std::cout << ntc_lookup.lookup(10000) << std::endl;
