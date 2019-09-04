@@ -4,20 +4,20 @@ from conans import ConanFile, CMake, tools
 
 class ThermistorTestConan(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
-    generators = "cmake_find_package"
+    generators = "cmake"
+    requires = "gtest/1.8.0@bincrafters/stable", "thermistor/0.1@matt1795/testing"
+
+    def configure(self):
+        self.options["gtest"].build_gmock = False
 
     def build(self):
         cmake = CMake(self)
-        # Current dir is "test_package/build/<build_id>" and CMakeLists.txt is
-        # in "test_package"
+        cmake.definitions['WITH_GMOCK'] = self.options['gtest'].build_gmock
         cmake.configure()
         cmake.build()
 
-    def imports(self):
-        self.copy("*.dll", dst="bin", src="bin")
-        self.copy("*.dylib*", dst="bin", src="lib")
-        self.copy('*.so*', dst='bin', src='lib')
-
     def test(self):
         if not tools.cross_building(self.settings):
-            self.run("./main")
+            os.chdir("bin")
+            self.run(".%sThermistorTest" % os.sep)
+

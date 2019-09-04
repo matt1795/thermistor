@@ -30,7 +30,7 @@ namespace Thermistor {
 
 		return false;
 	}
-	
+
 	// checks if range is in ascending order
 	template <typename Iterator>
 	constexpr bool ascending(Iterator first, Iterator last) {
@@ -38,7 +38,7 @@ namespace Thermistor {
 			return current > previous;
 		});
 	}
-	
+
 	// checks if range is in descending order
 	template <typename Iterator>
 	constexpr bool descending(Iterator first, Iterator last) {
