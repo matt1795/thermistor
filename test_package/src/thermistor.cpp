@@ -20,12 +20,12 @@
 
 template <typename LutType, typename Data>
 auto mean_squared_error(LutType const& lut, Data const& table) {
-    if (LutType::size != table.size())
+    if (lut.size() != table.size())
         throw std::runtime_error("sizes do not match");
 
     double acc = 0.0;
     for (auto i = 0; i < table.size(); i++) {
-        auto err = gcem::abs(table[i].second - lut.table[i]);
+        auto err = gcem::abs(table[i].second - lut[i]);
         acc += err * err;
     }
 
@@ -52,11 +52,11 @@ TEST(ThermistorTests, SteinhartLookupTest) {
         Thermistor::Ntc<TempRange, Typical::data.size(), double, std::uint32_t>(
             Typical::equation);
 
-    for (auto i = 0; i < lut.table.size(); i++)
-        EXPECT_DOUBLE_EQ(lut.table[i], Typical::data[i].second);
+    for (auto i = 0; i < lut.size(); i++)
+        EXPECT_DOUBLE_EQ(lut[i], Typical::data[i].second);
 
-    for (auto i = 0; i < lut_integral.table.size(); i++)
-        EXPECT_EQ(lut_integral.table[i], gcem::round(Typical::data[i].second));
+    for (auto i = 0; i < lut_integral.size(); i++)
+        EXPECT_EQ(lut_integral[i], gcem::round(Typical::data[i].second));
 }
 
 TEST(ThermistorTests, MakeLutTest) {
@@ -65,8 +65,8 @@ TEST(ThermistorTests, MakeLutTest) {
         Thermistor::make_lut<TempRange, Typical::data.size(), double, double>(
             Typical::equation.a, Typical::equation.b, Typical::equation.c);
 
-    for (auto i = 0; i < lut.table.size(); i++) {
-        EXPECT_DOUBLE_EQ(lut.table[i], Typical::data[i].second);
+    for (auto i = 0; i < lut.size(); i++) {
+        EXPECT_DOUBLE_EQ(lut[i], Typical::data[i].second);
     }
 }
 
@@ -80,14 +80,14 @@ TEST(ThermistorTests, SingleBetaTest) {
         Thermistor::make_lut<TempRange, datapoints, double, double>(nominal,
                                                                     beta);
 
-    for (auto i = 0; i < lut.table.size(); i++) {
+    for (auto i = 0; i < lut.size(); i++) {
         auto temp = static_cast<double>(i * lut.delta) + TempRange::min +
                     Thermistor::kelvin;
         double expected_res =
             nominal.res *
             gcem::exp(beta * ((1.0 / temp) - 1.0 / kelvin(nominal.temp)));
 
-        EXPECT_FLOAT_EQ(expected_res, lut.table[i]);
+        EXPECT_FLOAT_EQ(expected_res, lut[i]);
     }
 }
 
@@ -127,10 +127,10 @@ TEST(ThermistorTests, InterpolationTest) {
         Typical::equation.a, Typical::equation.b, Typical::equation.c);
 
     std::mt19937 gen;
-    for (auto it = lut.table.begin(); it != std::prev(lut.table.end()); ++it) {
+    for (auto it = lut.cbegin(); it != std::prev(lut.cend()); ++it) {
         std::uniform_int_distribution dist(*std::next(it), *it);
 
-        double min_temp = std::distance(lut.table.begin(), it) + TempRange::min;
+        double min_temp = std::distance(lut.cbegin(), it) + TempRange::min;
         double max_temp = min_temp + 1.0;
 
         for (auto i = 0; i < 100; i++) {
@@ -152,8 +152,8 @@ TEST(ThermistorTests, SaturationTest) {
     constexpr auto lut = Thermistor::make_lut<TempRange, 11, double>(
         Typical::equation.a, Typical::equation.b, Typical::equation.c);
 
-    std::uint32_t max = lut.table[0];
-    std::uint32_t min = lut.table[10];
+    std::uint32_t max = lut[0];
+    std::uint32_t min = lut[10];
     std::uint32_t max_outside = max + 10;
     std::uint32_t min_outside = min - 10;
 

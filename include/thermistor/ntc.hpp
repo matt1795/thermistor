@@ -46,10 +46,11 @@ namespace Thermistor {
     template <typename TempRange, auto datapoints, typename Temp,
               typename Res = std::uint32_t,
               typename = std::enable_if_t<std::is_signed_v<Temp>>>
-    struct Ntc {
-        std::array<Res, datapoints> table{};
+    class Ntc {
+        using Table = std::array<Res, datapoints>;
+        Table table{};
 
-        static constexpr auto size = datapoints;
+      public:
         static constexpr auto delta =
             static_cast<double>(TempRange::max - TempRange::min) /
             (datapoints - 1);
@@ -62,6 +63,16 @@ namespace Thermistor {
         template <typename Iterator>
         constexpr Temp iterator_to_temp(Iterator const& it) const {
             return index_to_temp(std::distance(it, table.rend()) - 1);
+        }
+
+        constexpr auto cbegin() const noexcept { return table.cbegin(); }
+
+        constexpr auto cend() const noexcept { return table.cend(); }
+
+        constexpr auto size() const noexcept { return table.size(); }
+
+        constexpr auto operator[](typename Table::size_type pos) const {
+            return table[pos];
         }
 
         // outputs interpolated temperature and whether it is a saturated
