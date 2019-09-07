@@ -16,6 +16,33 @@
 #include <tuple>
 
 namespace Thermistor {
+    constexpr auto kelvin = 273.15;
+
+    struct Datapoint {
+        double temp;
+        double res;
+    };
+
+    struct BetaPoint {
+        double temp;
+        double beta;
+    };
+
+    template <auto minimum, auto maximum>
+    struct Range {
+        static_assert(minimum < maximum, "min is not less than max");
+
+        static constexpr auto min = minimum;
+        static constexpr auto max = maximum;
+    };
+
+    constexpr double reverse_beta(BetaPoint const& point,
+                                  Datapoint const& nominal) {
+        return nominal.res *
+               gcem::exp(point.beta * ((1.0 / (point.temp + kelvin)) -
+                                       (1.0 / (nominal.temp + kelvin))));
+    }
+
     template <typename TempRange, auto datapoints, typename Temp,
               typename Res = std::uint32_t,
               typename = std::enable_if_t<std::is_signed_v<Temp>>>

@@ -8,7 +8,7 @@
 
 #include "ertj0ev474j.hpp"
 
-#include "thermistor/steinhart.hpp"
+#include "thermistor/ntc.hpp"
 
 constexpr double kelvin(double celcius) {
     return celcius + Thermistor::kelvin;
