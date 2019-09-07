@@ -55,6 +55,28 @@ namespace Thermistor {
             static_cast<double>(TempRange::max - TempRange::min) /
             (datapoints - 1);
 
+        constexpr Ntc(Steinhart const& equation) {
+            for (auto i = 0; i < datapoints; i++) {
+                double res = equation.calculate_res(
+                    static_cast<double>(i * delta) + TempRange::min + kelvin);
+
+                if constexpr (std::is_integral_v<Res>)
+                    table[i] = gcem::round(res);
+                else
+                    table[i] = res;
+            }
+
+            if (!descending(std::begin(table), std::end(table))) {
+                if (over_sampled(std::begin(table), std::end(table)))
+                    throw std::logic_error(
+                        "the thermistor transfer function is over sampled "
+                        "and not able to distinguish between some "
+                        "temperatures (decrease number of datapoints)");
+                throw std::logic_error(
+                    "table values must be in descending order");
+            }
+        }
+
         template <typename IndexType>
         constexpr Temp index_to_temp(IndexType i) const {
             return static_cast<Temp>(i) * delta + TempRange::min;
@@ -100,28 +122,6 @@ namespace Thermistor {
 
                 return std::make_pair(x1 + ((y1 - res) * (x2 - x1) / (y1 - y2)),
                                       false);
-            }
-        }
-
-        constexpr Ntc(Steinhart const& equation) {
-            for (auto i = 0; i < datapoints; i++) {
-                double res = equation.calculate_res(
-                    static_cast<double>(i * delta) + TempRange::min + kelvin);
-
-                if constexpr (std::is_integral_v<Res>)
-                    table[i] = gcem::round(res);
-                else
-                    table[i] = res;
-            }
-
-            if (!descending(std::begin(table), std::end(table))) {
-                if (over_sampled(std::begin(table), std::end(table)))
-                    throw std::logic_error(
-                        "the thermistor transfer function is over sampled "
-                        "and not able to distinguish between some "
-                        "temperatures (decrease number of datapoints)");
-                throw std::logic_error(
-                    "table values must be in descending order");
             }
         }
     };
