@@ -11,7 +11,7 @@
 #include "ertj0ev474j.hpp"
 #include "typical.hpp"
 
-#include "thermistor/steinhart.hpp"
+#include "thermistor/ntc.hpp"
 
 #include <array>
 #include <limits>
@@ -129,12 +129,11 @@ TEST(ThermistorTests, InterpolationTest) {
     std::mt19937 gen;
     for (auto it = lut.table.begin(); it != std::prev(lut.table.end()); ++it) {
         std::uniform_int_distribution dist(*std::next(it), *it);
-        static const auto num = 10;
 
         double min_temp = std::distance(lut.table.begin(), it) + TempRange::min;
         double max_temp = min_temp + 1.0;
 
-        for (auto i = 0; i < num; i++) {
+        for (auto i = 0; i < 100; i++) {
             std::uint32_t res = dist(gen);
             auto [temp, sat] = lut.interpolate(res);
             EXPECT_FALSE(sat);
