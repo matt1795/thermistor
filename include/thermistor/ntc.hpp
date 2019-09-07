@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "circuit.hpp"
 #include "steinhart.hpp"
 #include "util.hpp"
 
@@ -44,10 +45,10 @@ namespace Thermistor {
     }
 
     template <typename TempRange, auto datapoints, typename Temp,
-              typename Res = std::uint32_t,
+              typename TableValue = std::uint32_t,
               typename = std::enable_if_t<std::is_signed_v<Temp>>>
     class Ntc {
-        using Table = std::array<Res, datapoints>;
+        using Table = std::array<TableValue, datapoints>;
         Table table{};
 
       public:
@@ -55,15 +56,18 @@ namespace Thermistor {
             static_cast<double>(TempRange::max - TempRange::min) /
             (datapoints - 1);
 
-        constexpr Ntc(Steinhart const& equation) {
+        template <typename Circuit>
+        constexpr Ntc(Steinhart const& equation, Circuit const& circuit) {
             for (auto i = 0; i < datapoints; i++) {
                 double res = equation.calculate_res(
                     static_cast<double>(i * delta) + TempRange::min + kelvin);
 
-                if constexpr (std::is_integral_v<Res>)
-                    table[i] = gcem::round(res);
+                auto value = circuit.transform(res);
+
+                if constexpr (std::is_integral_v<TableValue>)
+                    table[i] = gcem::round(value);
                 else
-                    table[i] = res;
+                    table[i] = value;
             }
 
             if (!descending(std::begin(table), std::end(table))) {
@@ -76,6 +80,9 @@ namespace Thermistor {
                     "table values must be in descending order");
             }
         }
+
+        constexpr Ntc(Steinhart const& equation)
+            : Ntc(equation, Circuit::None{}) {}
 
         template <typename IndexType>
         constexpr Temp index_to_temp(IndexType i) const {
@@ -99,7 +106,7 @@ namespace Thermistor {
 
         // outputs interpolated temperature and whether it is a saturated
         // value
-        std::pair<Temp, bool> interpolate(Res const& res) const {
+        std::pair<Temp, bool> interpolate(TableValue const& res) const {
             auto it = std::lower_bound(table.rbegin(), table.rend(), res);
 
             // saturate the value if out of bounds
@@ -117,8 +124,8 @@ namespace Thermistor {
                 // interpolate
                 Temp x1 = iterator_to_temp(it);
                 Temp x2 = iterator_to_temp(std::prev(it));
-                Res y1 = *it;
-                Res y2 = *std::prev(it);
+                TableValue y1 = *it;
+                TableValue y2 = *std::prev(it);
 
                 return std::make_pair(x1 + ((y1 - res) * (x2 - x1) / (y1 - y2)),
                                       false);
@@ -130,26 +137,26 @@ namespace Thermistor {
 
     // Regular steinhart coefficients
     template <typename TempRange, auto datapoints, typename Temp,
-              typename Res = std::uint32_t>
+              typename TableValue = std::uint32_t>
     constexpr auto make_lut(double a, double b, double c) {
-        return Ntc<TempRange, datapoints, Temp, Res>{Steinhart{a, b, c}};
+        return Ntc<TempRange, datapoints, Temp, TableValue>{Steinhart{a, b, c}};
     }
 
     // Single Beta
     template <typename TempRange, auto datapoints, typename Temp,
-              typename Res = std::uint32_t>
+              typename TableValue = std::uint32_t>
     constexpr auto make_lut(Datapoint const& nominal, double beta) {
         double b = 1.0 / beta;
         double a =
             (1.0 / (nominal.temp + kelvin)) - (b * gcem::log(nominal.res));
         double c = 0.0;
 
-        return make_lut<TempRange, datapoints, Temp, Res>(a, b, c);
+        return make_lut<TempRange, datapoints, Temp, TableValue>(a, b, c);
     }
 
     // Two Betas
     template <typename TempRange, auto datapoints, typename Temp,
-              typename Res = std::uint32_t>
+              typename TableValue = std::uint32_t>
     constexpr auto make_lut(Datapoint const& nominal, BetaPoint const& b1,
                             BetaPoint const& b2) {
         // absolute temperatures
@@ -178,6 +185,6 @@ namespace Thermistor {
         double b = p1 - (c * ((l0 * l0) + (l0 * l1) + (l1 * l1)));
         double a = y0 - l0 * (b + (c * (l0 * l0)));
 
-        return make_lut<TempRange, datapoints, Temp, Res>(a, b, c);
+        return make_lut<TempRange, datapoints, Temp, TableValue>(a, b, c);
     }
 } // namespace Thermistor
