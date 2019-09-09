@@ -6,6 +6,10 @@
 
 #pragma once
 
+#include "util.hpp"
+
+#include "thermistor/ntc.hpp"
+
 #include <array>
 #include <tuple>
 

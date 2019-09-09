@@ -6,9 +6,7 @@
 
 #pragma once
 
-#include "ertj0ev474j.hpp"
-
-#include "thermistor/ntc.hpp"
+#include "thermistor/steinhart.hpp"
 
 constexpr double kelvin(double celcius) {
     return celcius + Thermistor::kelvin;

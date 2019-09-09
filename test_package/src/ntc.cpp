@@ -122,10 +122,10 @@ TEST(NtcTests, InterpolationTest) {
     constexpr Thermistor::Ntc<TempRange, 21, double> lut{Typical::equation};
 
     std::mt19937 gen;
-    for (auto it = lut.cbegin(); it != std::prev(lut.cend()); ++it) {
+    for (auto it = lut.begin(); it != std::prev(lut.end()); ++it) {
         std::uniform_int_distribution dist(*std::next(it), *it);
 
-        double min_temp = std::distance(lut.cbegin(), it) + TempRange::min;
+        double min_temp = std::distance(lut.begin(), it) + TempRange::min;
         double max_temp = min_temp + 1.0;
 
         for (auto i = 0; i < 100; i++) {

@@ -13,16 +13,14 @@ namespace Thermistor::Circuit {
         constexpr double transform(double res) const { return res; }
     };
 
+    template <auto resolution>
     struct Adc {
-        std::uint32_t resolution;
         double vref;
         double impedance;
 
-        constexpr Adc(
-            std::uint32_t resolution, double vref,
-            double impedance = std::numeric_limits<double>::infinity())
-            : resolution(resolution)
-            , vref(vref)
+        constexpr Adc(double vref, double impedance =
+                                       std::numeric_limits<double>::infinity())
+            : vref(vref)
             , impedance(impedance) {
 
             if (vref <= 0.0)

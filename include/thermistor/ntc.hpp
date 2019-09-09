@@ -44,7 +44,7 @@ namespace Thermistor {
                 double res = equation.calculate_res(
                     static_cast<double>(i * delta) + TempRange::min + kelvin);
 
-                auto value = circuit.transform(res);
+                double value = circuit.transform(res);
 
                 if constexpr (std::is_integral_v<TableValue>)
                     table[i] = gcem::round(value);
@@ -76,9 +76,9 @@ namespace Thermistor {
             return index_to_temp(std::distance(it, table.rend()) - 1);
         }
 
-        constexpr auto cbegin() const noexcept { return table.cbegin(); }
+        constexpr auto begin() const noexcept { return table.cbegin(); }
 
-        constexpr auto cend() const noexcept { return table.cend(); }
+        constexpr auto end() const noexcept { return table.cend(); }
 
         constexpr auto size() const noexcept { return table.size(); }
 
