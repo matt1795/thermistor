@@ -15,7 +15,10 @@ if(WITH_GMOCK)
     add_definitions("-DWITH_GMOCK")
 endif()
 
-add_executable(${PROJECT_NAME} ${SOURCE_FILES})
+add_executable(${PROJECT_NAME}
+    src/ntc.cpp
+    src/circuit.cpp)
+
 target_link_libraries(${PROJECT_NAME} ${CONAN_LIBS})
 target_include_directories(${PROJECT_NAME} PRIVATE include)
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)

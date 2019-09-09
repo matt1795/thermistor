@@ -32,7 +32,7 @@ auto mean_squared_error(LutType const& lut, Data const& table) {
     return acc / table.size();
 }
 
-TEST(ThermistorTests, SteinhartTest) {
+TEST(NtcTests, SteinhartTest) {
     for (auto& datapoint : Typical::data) {
         // use foat comparison to handle tiny rounding error
         EXPECT_FLOAT_EQ(Typical::equation.calculate_res(datapoint.first),
@@ -42,15 +42,14 @@ TEST(ThermistorTests, SteinhartTest) {
     }
 }
 
-TEST(ThermistorTests, SteinhartLookupTest) {
+TEST(NtcTests, SteinhartLookupTest) {
     using TempRange = Thermistor::Range<-10, 50>;
-    constexpr auto lut =
-        Thermistor::Ntc<TempRange, Typical::data.size(), double, double>(
-            Typical::equation);
+    constexpr Thermistor::Ntc<TempRange, Typical::data.size(), double, double>
+        lut{Typical::equation};
 
-    constexpr auto lut_integral =
-        Thermistor::Ntc<TempRange, Typical::data.size(), double, std::uint32_t>(
-            Typical::equation);
+    constexpr Thermistor::Ntc<TempRange, Typical::data.size(), double,
+                              std::uint32_t>
+        lut_integral{Typical::equation};
 
     for (auto i = 0; i < lut.size(); i++)
         EXPECT_DOUBLE_EQ(lut[i], Typical::data[i].second);
@@ -59,26 +58,24 @@ TEST(ThermistorTests, SteinhartLookupTest) {
         EXPECT_EQ(lut_integral[i], gcem::round(Typical::data[i].second));
 }
 
-TEST(ThermistorTests, MakeLutTest) {
+TEST(NtcTests, MakeLutTest) {
     using TempRange = Thermistor::Range<-10, 50>;
-    constexpr auto lut =
-        Thermistor::make_lut<TempRange, Typical::data.size(), double, double>(
-            Typical::equation.a, Typical::equation.b, Typical::equation.c);
+    constexpr Thermistor::Ntc<TempRange, Typical::data.size(), double, double>
+        lut{Typical::equation};
 
     for (auto i = 0; i < lut.size(); i++) {
         EXPECT_DOUBLE_EQ(lut[i], Typical::data[i].second);
     }
 }
 
-TEST(ThermistorTests, SingleBetaTest) {
+TEST(NtcTests, SingleBetaTest) {
     // create lut for single beta, double check table values against equation
     using TempRange = Thermistor::Range<-55, 105>;
-    constexpr auto beta = 3892.0;
+    constexpr double beta = 3892.0;
     constexpr Thermistor::Datapoint nominal{25.0, 10000.0};
-    constexpr auto datapoints = 161;
-    constexpr auto lut =
-        Thermistor::make_lut<TempRange, datapoints, double, double>(nominal,
-                                                                    beta);
+    constexpr std::uint32_t datapoints = 161;
+    constexpr Thermistor::Ntc<TempRange, datapoints, double, double> lut{
+        Thermistor::Steinhart{nominal, beta}};
 
     for (auto i = 0; i < lut.size(); i++) {
         auto temp = static_cast<double>(i * lut.delta) + TempRange::min +
@@ -91,7 +88,7 @@ TEST(ThermistorTests, SingleBetaTest) {
     }
 }
 
-TEST(ThermistorTests, DoubleBetaTest) {
+TEST(NtcTests, DoubleBetaTest) {
     // create lut for double beta, compare against actual table for thermistor,
     // ensure that squared error is smaller than using single betas
     using TempRange = Thermistor::Range<-40, 125>;
@@ -103,15 +100,14 @@ TEST(ThermistorTests, DoubleBetaTest) {
     constexpr Thermistor::BetaPoint b1{50.0, beta1};
     constexpr Thermistor::BetaPoint b2{85.0, beta2};
 
-    constexpr auto single1 =
-        Thermistor::make_lut<TempRange, datapoints, float, float>(nominal,
-                                                                  beta1);
-    constexpr auto single2 =
-        Thermistor::make_lut<TempRange, datapoints, float, float>(nominal,
-                                                                  beta2);
-    constexpr auto full =
-        Thermistor::make_lut<TempRange, datapoints, float, float>(nominal, b1,
-                                                                  b2);
+    constexpr Thermistor::Ntc<TempRange, datapoints, float, float> single1{
+        Thermistor::Steinhart{nominal, beta1}};
+
+    constexpr Thermistor::Ntc<TempRange, datapoints, float, float> single2{
+        Thermistor::Steinhart{nominal, beta2}};
+
+    constexpr Thermistor::Ntc<TempRange, datapoints, float, float> full{
+        Thermistor::Steinhart{nominal, b1, b2}};
 
     double err_single1 = mean_squared_error(single1, ertj0ev474j::data);
     double err_single2 = mean_squared_error(single2, ertj0ev474j::data);
@@ -121,10 +117,9 @@ TEST(ThermistorTests, DoubleBetaTest) {
     EXPECT_TRUE(err_full < err_single1 && err_full < err_single2);
 }
 
-TEST(ThermistorTests, InterpolationTest) {
+TEST(NtcTests, InterpolationTest) {
     using TempRange = Thermistor::Range<-10, 10>;
-    constexpr auto lut = Thermistor::make_lut<TempRange, 21, double>(
-        Typical::equation.a, Typical::equation.b, Typical::equation.c);
+    constexpr Thermistor::Ntc<TempRange, 21, double> lut{Typical::equation};
 
     std::mt19937 gen;
     for (auto it = lut.cbegin(); it != std::prev(lut.cend()); ++it) {
@@ -147,10 +142,9 @@ TEST(ThermistorTests, InterpolationTest) {
 }
 
 // Tests the end points and just past them to catch any boundary cases
-TEST(ThermistorTests, SaturationTest) {
+TEST(NtcTests, SaturationTest) {
     using TempRange = Thermistor::Range<0, 10>;
-    constexpr auto lut = Thermistor::make_lut<TempRange, 11, double>(
-        Typical::equation.a, Typical::equation.b, Typical::equation.c);
+    constexpr Thermistor::Ntc<TempRange, 11, double> lut{Typical::equation};
 
     std::uint32_t max = lut[0];
     std::uint32_t min = lut[10];

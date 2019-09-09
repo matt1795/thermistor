@@ -10,37 +10,58 @@
 
 namespace Thermistor::Circuit {
     struct None {
-        static constexpr double transform(double res) {
-            return res;
-        }
+        constexpr double transform(double res) const { return res; }
     };
-    template <auto resolution, auto vref, typename VrefRatio>
+
     struct Adc {
-        // TODO: impedance?
-        template <typename T>
-        static constexpr std::uint32_t convert(T val) {
-            // TODO: static assert that the resolution isn't too big
-            double ratio = 1.0 / vref / VrefRatio::num * VrefRatio::den * val;
+        std::uint32_t resolution;
+        double vref;
+        double impedance;
+
+        constexpr Adc(
+            std::uint32_t resolution, double vref,
+            double impedance = std::numeric_limits<double>::infinity())
+            : resolution(resolution)
+            , vref(vref)
+            , impedance(impedance) {
+
+            if (vref <= 0.0)
+                throw std::runtime_error("vref must be greater than zero");
+
+            if (impedance <= 0.0)
+                throw std::runtime_error("impedance must be greater than zero");
+        }
+
+        constexpr double convert(double voltage) const {
+            double ratio = voltage / vref;
             if (ratio > 1.0)
                 ratio = 1.0;
-            if (ratio < 0.0)
+            else if (ratio < 0.0)
                 ratio = 0.0;
 
-            return ratio * ((1 << resolution) - 1);
+            return gcem::floor(ratio * ((1 << resolution) - 1));
         }
     };
 
     // A half-bridge assumes that the thermistor is connected to ground.
-    template <auto supply, typename SupplyRatio, auto top_res, auto resolution,
-              auto vref, typename VrefRatio>
+    template <typename AdcType>
     struct HalfBridge {
-        static constexpr auto transform() {
-            return [](auto val) {
-                double voltage = (static_cast<double>(supply) *
-                                  SupplyRatio::num * SupplyRatio::den * val) /
-                                 (top_res + val);
-                return Adc<resolution, vref, VrefRatio>::convert(voltage);
-            };
+        AdcType adc;
+        double supply;
+        double r1;
+
+        constexpr HalfBridge(AdcType const& adc, double supply, double res)
+            : adc(adc)
+            , supply(supply)
+            , r1(res) {}
+
+        constexpr double transform(double res) const {
+            double r2 =
+                (adc.impedance == std::numeric_limits<double>::infinity())
+                    ? res
+                    : ((adc.impedance * res) / (adc.impedance + res));
+
+            return adc.convert((supply * r2) / (r1 + r2));
         }
     };
-} // namespace Thermistor::Circuits
+} // namespace Thermistor::Circuit

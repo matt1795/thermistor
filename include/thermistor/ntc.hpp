@@ -17,18 +17,6 @@
 #include <tuple>
 
 namespace Thermistor {
-    constexpr auto kelvin = 273.15;
-
-    struct Datapoint {
-        double temp;
-        double res;
-    };
-
-    struct BetaPoint {
-        double temp;
-        double beta;
-    };
-
     template <auto minimum, auto maximum>
     struct Range {
         static_assert(minimum < maximum, "min is not less than max");
@@ -36,13 +24,6 @@ namespace Thermistor {
         static constexpr auto min = minimum;
         static constexpr auto max = maximum;
     };
-
-    constexpr double reverse_beta(BetaPoint const& point,
-                                  Datapoint const& nominal) {
-        return nominal.res *
-               gcem::exp(point.beta * ((1.0 / (point.temp + kelvin)) -
-                                       (1.0 / (nominal.temp + kelvin))));
-    }
 
     template <typename TempRange, auto datapoints, typename Temp,
               typename TableValue = std::uint32_t,
@@ -57,7 +38,8 @@ namespace Thermistor {
             (datapoints - 1);
 
         template <typename Circuit>
-        constexpr Ntc(Steinhart const& equation, Circuit const& circuit) {
+        constexpr Ntc(Steinhart const& equation,
+                      Circuit const& circuit = Thermistor::Circuit::None{}) {
             for (auto i = 0; i < datapoints; i++) {
                 double res = equation.calculate_res(
                     static_cast<double>(i * delta) + TempRange::min + kelvin);
@@ -132,59 +114,4 @@ namespace Thermistor {
             }
         }
     };
-
-    // Factory Functions:
-
-    // Regular steinhart coefficients
-    template <typename TempRange, auto datapoints, typename Temp,
-              typename TableValue = std::uint32_t>
-    constexpr auto make_lut(double a, double b, double c) {
-        return Ntc<TempRange, datapoints, Temp, TableValue>{Steinhart{a, b, c}};
-    }
-
-    // Single Beta
-    template <typename TempRange, auto datapoints, typename Temp,
-              typename TableValue = std::uint32_t>
-    constexpr auto make_lut(Datapoint const& nominal, double beta) {
-        double b = 1.0 / beta;
-        double a =
-            (1.0 / (nominal.temp + kelvin)) - (b * gcem::log(nominal.res));
-        double c = 0.0;
-
-        return make_lut<TempRange, datapoints, Temp, TableValue>(a, b, c);
-    }
-
-    // Two Betas
-    template <typename TempRange, auto datapoints, typename Temp,
-              typename TableValue = std::uint32_t>
-    constexpr auto make_lut(Datapoint const& nominal, BetaPoint const& b1,
-                            BetaPoint const& b2) {
-        // absolute temperatures
-        double t0 = nominal.temp + kelvin;
-        double t1 = b1.temp + kelvin;
-        double t2 = b2.temp + kelvin;
-
-        // reverse calculate resistances
-        double r1 = reverse_beta(b1, nominal);
-        double r2 = reverse_beta(b2, nominal);
-
-        // intermediate calculations
-        double l0 = gcem::log(nominal.res);
-        double l1 = gcem::log(r1);
-        double l2 = gcem::log(r2);
-
-        double y0 = 1.0 / t0;
-        double y1 = 1.0 / t1;
-        double y2 = 1.0 / t2;
-
-        double p1 = (y1 - y0) / (l1 - l0);
-        double p2 = (y2 - y0) / (l2 - l0);
-
-        // Steinhart coefficients
-        double c = ((p2 - p1) / (l2 - l1)) * (1.0 / (l0 + l1 + l2));
-        double b = p1 - (c * ((l0 * l0) + (l0 * l1) + (l1 * l1)));
-        double a = y0 - l0 * (b + (c * (l0 * l0)));
-
-        return make_lut<TempRange, datapoints, Temp, TableValue>(a, b, c);
-    }
 } // namespace Thermistor
