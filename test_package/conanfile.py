@@ -5,7 +5,7 @@ from conans import ConanFile, CMake, tools
 class ThermistorTestConan(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
     generators = "cmake"
-    requires = "gtest/1.8.0@bincrafters/stable", "thermistor/0.1@matt1795/testing"
+    requires = "gtest/1.8.0@bincrafters/stable", "thermistor/1.0@matt1795/stable"
 
     def configure(self):
         self.options["gtest"].build_gmock = False
