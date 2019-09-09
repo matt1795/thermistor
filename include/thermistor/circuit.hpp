@@ -13,8 +13,9 @@ namespace Thermistor::Circuit {
         constexpr double transform(double res) const { return res; }
     };
 
-    template <auto resolution>
+    template <auto bits>
     struct Adc {
+        static constexpr auto resolution = bits;
         double vref;
         double impedance;
 
