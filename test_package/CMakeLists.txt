@@ -3,17 +3,8 @@ project(ThermistorTest CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-include(CTest)
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-
-enable_testing()
 conan_basic_setup()
-
-file(GLOB SOURCE_FILES "src/*.cpp")
-
-if(WITH_GMOCK)
-    add_definitions("-DWITH_GMOCK")
-endif()
 
 add_executable(${PROJECT_NAME}
     src/ntc.cpp
